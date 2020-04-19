@@ -200,7 +200,7 @@ func reportError(err error) {
 func main() {
 	const mbPatchURL = "https://getmusicbee.com/patches/"
 	const MBPath = "C:\\Program Files (x86)\\MusicBee\\"
-	const cachePath = "C:/tmp/"
+	const cachePath = "C:\\tmp\\"
 	const targetFileName = "MusicBee33_Patched.zip"
 
 	lastAccessFileName := cachePath + "mb_last_download_datetime.txt"

@@ -181,7 +181,7 @@ func extractUpdatedFile(f *zip.File, fpath string) (bool, error) {
 	if err = os.Chtimes(fpath, f.Modified, f.Modified); err != nil {
 		return false, err
 	}
-	fmt.Printf("%v -> %v\n", modifiedExistingFile, f.Modified.In(time.Local))
+	fmt.Printf("%v -> %v: %v\n", modifiedExistingFile, f.Modified.In(time.Local), filepath.Base(fpath))
 	return true, nil
 }
 

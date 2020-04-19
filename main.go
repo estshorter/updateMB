@@ -194,12 +194,12 @@ func Exists(filename string) bool {
 func reportError(err error) {
 	log.Print(err)
 	keyboard.GetSingleKey()
-	os.Exit(1)
+	panic("Error occured")
 }
 
 func main() {
 	const mbPatchURL = "https://getmusicbee.com/patches/"
-	const MBPath = "C:/Program Files (x86)/MusicBee/"
+	const MBPath = "C:\\Program Files (x86)\\MusicBee\\"
 	const cachePath = "C:/tmp/"
 	const targetFileName = "MusicBee33_Patched.zip"
 
@@ -240,9 +240,10 @@ func main() {
 
 	ioutil.WriteFile(lastAccessFileName, []byte(mbSiteTimeStampStr), 0644)
 	timeout(7)
-	//restart MB
-	cmd := exec.Command("cmd.exe", "/C", "start", "/b", `MusicBee.exe`)
-	if err := cmd.Run(); err != nil {
+	// restart MB
+	// https://stackoverflow.com/questions/25633077/how-do-you-add-spaces-to-exec-command-in-golang
+	cmd := exec.Command(MBPath + "MusicBee.exe")
+	if err := cmd.Start(); err != nil {
 		reportError(err)
 	}
 }

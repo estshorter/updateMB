@@ -21,10 +21,10 @@ func timeout(waitSecond int) {
 	ch := make(chan struct{}, 1)
 	go func() {
 		for i := waitSecond; i > 0; i-- {
-			fmt.Printf("\r%d秒後に終了します", i)
+			fmt.Printf("\rExit after %d second(s)", i)
 			time.Sleep(time.Second)
 		}
-		fmt.Printf("\r0秒後に終了します")
+		fmt.Printf("\rExit after 0 second(s)")
 		ch <- struct{}{}
 	}()
 

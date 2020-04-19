@@ -198,12 +198,13 @@ func reportError(err error) {
 }
 
 func main() {
-	const targetFileName = "MusicBee33_Patched.zip"
-	const lastAccessFileName = "C:/tmp/mb_last_download_datetime.txt"
 	const mbPatchURL = "https://getmusicbee.com/patches/"
-
-	downloadPath := "C:/tmp/" + targetFileName
 	const MBPath = "C:/Program Files (x86)/MusicBee/"
+	const cachePath = "C:/tmp/"
+	const targetFileName = "MusicBee33_Patched.zip"
+
+	lastAccessFileName := cachePath + "mb_last_download_datetime.txt"
+	downloadPath := cachePath + targetFileName
 
 	fDir := filepath.Dir(lastAccessFileName)
 	if !Exists(fDir) {

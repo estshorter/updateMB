@@ -23,6 +23,7 @@ func timeout(waitSecond int) {
 	defer ticker.Stop()
 	done := make(chan struct{})
 	timeoutTime := time.Now().Add(time.Second * time.Duration(waitSecond))
+	fmt.Printf("\rWaiting for %v seconds, press any key to quit...", waitSecond)
 
 	var once sync.Once
 	go func() {

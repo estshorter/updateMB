@@ -1,4 +1,4 @@
-module update-mb
+module github.com/estshorter/updateMB
 
 go 1.14
 

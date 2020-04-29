@@ -45,7 +45,7 @@ func timeout(waitSecond int) {
 			keyboard.Close()
 			return
 		case t := <-ticker.C:
-			fmt.Printf("\rExit after %v second(s)", timeout.Sub(t).Round(time.Second).Seconds())
+			fmt.Printf("\rWaiting for %v seconds, press any key to quit...", timeout.Sub(t).Round(time.Second).Seconds())
 		}
 	}
 }

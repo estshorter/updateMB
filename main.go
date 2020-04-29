@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
@@ -18,14 +19,15 @@ import (
 )
 
 func timeout(waitSecond int) {
-	ch := make(chan struct{}, 1)
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+	done := make(chan struct{})
+	timeout := time.Now().Add(time.Second * time.Duration(waitSecond))
+
+	var once sync.Once
 	go func() {
-		for i := waitSecond; i > 0; i-- {
-			fmt.Printf("\rExit after %d second(s)", i)
-			time.Sleep(time.Second)
-		}
-		fmt.Printf("\rExit after 0 second(s)")
-		ch <- struct{}{}
+		time.Sleep(time.Duration(waitSecond) * time.Second)
+		once.Do(func() { done <- struct{}{} })
 	}()
 
 	go func() {
@@ -33,11 +35,18 @@ func timeout(waitSecond int) {
 		if err != nil {
 			panic(err)
 		}
-		ch <- struct{}{}
+		once.Do(func() { done <- struct{}{} })
 	}()
-	select {
-	case <-ch:
-		return
+
+	for {
+		select {
+		case <-done:
+			fmt.Println("")
+			keyboard.Close()
+			return
+		case t := <-ticker.C:
+			fmt.Printf("\rExit after %v second(s)", timeout.Sub(t).Round(time.Second).Seconds())
+		}
 	}
 }
 

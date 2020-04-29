@@ -2,6 +2,8 @@ package main
 
 import (
 	"archive/zip"
+	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -11,44 +13,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/eiannone/keyboard"
+	"github.com/estshorter/timeout"
 )
-
-func timeout(waitSecond int) {
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-	done := make(chan struct{})
-	timeoutTime := time.Now().Add(time.Second * time.Duration(waitSecond))
-	fmt.Printf("\rWaiting for %v seconds, press any key to quit...", waitSecond)
-
-	var once sync.Once
-	go func() {
-		time.Sleep(time.Duration(waitSecond) * time.Second)
-		once.Do(func() { done <- struct{}{} })
-	}()
-
-	go func() {
-		if err := keyboard.Open(); err == nil {
-			keyboard.GetKey()
-		}
-		once.Do(func() { done <- struct{}{} })
-	}()
-	defer keyboard.Close()
-
-	for {
-		select {
-		case <-done:
-			fmt.Println("")
-			return
-		case t := <-ticker.C:
-			fmt.Printf("\rWaiting for %v seconds, press any key to quit...", timeoutTime.Sub(t).Round(time.Second).Seconds())
-		}
-	}
-}
 
 func getLastAccessDate(path string) string {
 	content, err := ioutil.ReadFile(path)
@@ -202,11 +171,12 @@ func Exists(filename string) bool {
 
 func reportError(err error) {
 	log.Print(err)
-	keyboard.GetSingleKey()
+	bufio.NewReader(os.Stdin).ReadBytes('\n')
 	panic("Error occured")
 }
 
 func main() {
+	reportError(errors.New("hoge"))
 	const mbPatchURL = "https://getmusicbee.com/patches/"
 	const MBPath = "C:\\Program Files (x86)\\MusicBee\\"
 	const cachePath = "C:\\tmp\\"
@@ -228,7 +198,7 @@ func main() {
 	}
 	if !needUpdate {
 		fmt.Println("No need to download.")
-		timeout(3)
+		timeout.Exec(3)
 		return
 	}
 
@@ -248,7 +218,7 @@ func main() {
 	}
 
 	ioutil.WriteFile(lastAccessFileName, []byte(mbSiteTimeStampStr), 0644)
-	timeout(7)
+	timeout.Exec(7)
 	// restart MB
 	// https://stackoverflow.com/questions/25633077/how-do-you-add-spaces-to-exec-command-in-golang
 	cmd := exec.Command(MBPath + "MusicBee.exe")

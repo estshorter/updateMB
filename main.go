@@ -3,7 +3,6 @@ package main
 import (
 	"archive/zip"
 	"bufio"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -176,7 +175,6 @@ func reportError(err error) {
 }
 
 func main() {
-	reportError(errors.New("hoge"))
 	const mbPatchURL = "https://getmusicbee.com/patches/"
 	const MBPath = "C:\\Program Files (x86)\\MusicBee\\"
 	const cachePath = "C:\\tmp\\"

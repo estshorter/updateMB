@@ -4,5 +4,5 @@ go 1.14
 
 require (
 	github.com/PuerkitoBio/goquery v1.5.1
-	github.com/estshorter/timeout v0.0.0-20200429234533-a3c85d3ef6d6
+	github.com/estshorter/timeout v0.0.0-20200430043043-7a5ce0437f78
 )

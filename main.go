@@ -99,7 +99,7 @@ func extractUpdatedFiles(src, dest string) (int, error) {
 		}
 
 		if f.FileInfo().IsDir() {
-			if !Exists(fpath) {
+			if !exists(fpath) {
 				os.MkdirAll(fpath, os.ModePerm)
 			}
 			continue
@@ -119,7 +119,7 @@ func extractUpdatedFiles(src, dest string) (int, error) {
 
 func extractUpdatedFile(f *zip.File, fpath string) (bool, error) {
 	var modifiedExistingFile time.Time
-	if Exists(fpath) {
+	if exists(fpath) {
 		info, err := os.Stat(fpath)
 		if err != nil {
 			return false, err
@@ -128,7 +128,7 @@ func extractUpdatedFile(f *zip.File, fpath string) (bool, error) {
 	} else {
 		modifiedExistingFile = time.Date(2000, 1, 1, 0, 0, 0, 0, time.Local)
 		fDir := filepath.Dir(fpath)
-		if !Exists(fDir) {
+		if !exists(fDir) {
 			if err := os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
 				return false, err
 			}
@@ -162,8 +162,7 @@ func extractUpdatedFile(f *zip.File, fpath string) (bool, error) {
 	return true, nil
 }
 
-// Exists checks if file/directory exists
-func Exists(filename string) bool {
+func exists(filename string) bool {
 	_, err := os.Stat(filename)
 	return err == nil
 }
@@ -184,7 +183,7 @@ func main() {
 	downloadPath := filepath.Join(cachePath, targetFileName)
 
 	fDir := filepath.Dir(lastAccessFileName)
-	if !Exists(fDir) {
+	if !exists(fDir) {
 		if err := os.MkdirAll(filepath.Dir(lastAccessFileName), os.ModePerm); err != nil {
 			reportError(err)
 		}

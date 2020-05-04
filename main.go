@@ -3,6 +3,7 @@ package main
 import (
 	"archive/zip"
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -11,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
@@ -171,6 +173,47 @@ func reportError(err error) {
 	panic("Error occured")
 }
 
+//https://blog.y-yuki.net/entry/2018/08/03/000000
+func isWinProcRunning(names ...string) (bool, error) {
+	if len(names) == 0 {
+		return false, nil
+	}
+
+	cmd := exec.Command("tasklist.exe", "/FI", "STATUS eq RUNNING", "/fo", "csv", "/nh")
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	out, err := cmd.Output()
+	if err != nil {
+		return false, err
+	}
+
+	for _, name := range names {
+		if bytes.Contains(out, []byte(name)) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func waitTillMBKill() error {
+	if isRunning, err := isWinProcRunning("MusicBee.exe"); err != nil {
+		return err
+	} else if !isRunning {
+		return nil
+	}
+	exec.Command("taskkill", "/im", "MusicBee.exe").Run()
+	for {
+		select {
+		case <-time.After(time.Second):
+			if isRunning, err := isWinProcRunning("MusicBee.exe"); err != nil {
+				return err
+			} else if !isRunning {
+				return nil
+			}
+		}
+	}
+
+}
+
 func main() {
 	const mbPatchURL = "https://getmusicbee.com/patches/"
 	const MBPath = "C:/Program Files (x86)/MusicBee/"
@@ -197,10 +240,13 @@ func main() {
 	}
 
 	fmt.Println("Downloading the zip file.")
-	if err := downloadFile(downloadPath, filepath.Join(mbPatchURL, targetFileName)); err != nil {
+	if err := downloadFile(downloadPath, mbPatchURL+targetFileName); err != nil {
 		reportError(err)
 	}
-	exec.Command("taskkill", "/im", "MusicBee.exe").Run()
+
+	if err := waitTillMBKill(); err != nil {
+		reportError(err)
+	}
 	updatedCnt, err := extractUpdatedFiles(downloadPath, MBPath)
 	if err != nil {
 		reportError(err)

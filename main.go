@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -139,19 +138,18 @@ func extractUpdatedFile(f *zip.File, fpath string) (bool, error) {
 		return false, nil
 	}
 	outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
-	defer outFile.Close()
 	if err != nil {
 		return false, err
 	}
+	defer outFile.Close()
 
 	rc, err := f.Open()
-	defer rc.Close()
 	if err != nil {
 		return false, err
 	}
+	defer rc.Close()
 
-	_, err = io.Copy(outFile, rc)
-	if err != nil {
+	if _, err = io.Copy(outFile, rc); err != nil {
 		return false, err
 	}
 
@@ -168,7 +166,7 @@ func exists(filename string) bool {
 }
 
 func reportError(err error) {
-	log.Print(err)
+	fmt.Print(err)
 	bufio.NewReader(os.Stdin).ReadBytes('\n')
 	panic("Error occured")
 }
@@ -182,8 +180,7 @@ func main() {
 	lastAccessFileName := filepath.Join(cachePath, "mb_last_download_datetime.txt")
 	downloadPath := filepath.Join(cachePath, targetFileName)
 
-	fDir := filepath.Dir(lastAccessFileName)
-	if !exists(fDir) {
+	if !exists(filepath.Clean(cachePath)) {
 		if err := os.MkdirAll(filepath.Dir(lastAccessFileName), os.ModePerm); err != nil {
 			reportError(err)
 		}

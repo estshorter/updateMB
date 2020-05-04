@@ -176,12 +176,12 @@ func reportError(err error) {
 
 func main() {
 	const mbPatchURL = "https://getmusicbee.com/patches/"
-	const MBPath = "C:\\Program Files (x86)\\MusicBee\\"
-	const cachePath = "C:\\tmp\\"
+	const MBPath = "C:/Program Files (x86)/MusicBee/"
+	const cachePath = "C:/tmp"
 	const targetFileName = "MusicBee33_Patched.zip"
 
-	lastAccessFileName := cachePath + "mb_last_download_datetime.txt"
-	downloadPath := cachePath + targetFileName
+	lastAccessFileName := filepath.Join(cachePath, "mb_last_download_datetime.txt")
+	downloadPath := filepath.Join(cachePath, targetFileName)
 
 	fDir := filepath.Dir(lastAccessFileName)
 	if !Exists(fDir) {
@@ -201,7 +201,7 @@ func main() {
 	}
 
 	fmt.Println("Downloading the zip file.")
-	if err := downloadFile(downloadPath, mbPatchURL+targetFileName); err != nil {
+	if err := downloadFile(downloadPath, filepath.Join(mbPatchURL, targetFileName)); err != nil {
 		reportError(err)
 	}
 	exec.Command("taskkill", "/im", "MusicBee.exe").Run()
@@ -219,7 +219,7 @@ func main() {
 	timeout.Exec(7)
 	// restart MB
 	// https://stackoverflow.com/questions/25633077/how-do-you-add-spaces-to-exec-command-in-golang
-	cmd := exec.Command(MBPath + "MusicBee.exe")
+	cmd := exec.Command(filepath.Join(MBPath, "MusicBee.exe"))
 	if err := cmd.Start(); err != nil {
 		reportError(err)
 	}

@@ -194,7 +194,7 @@ func isWinProcRunning(names ...string) (bool, error) {
 	return false, nil
 }
 
-func waitTillMBKill() error {
+func waitTillMBStops() error {
 	if isRunning, err := isWinProcRunning("MusicBee.exe"); err != nil {
 		return err
 	} else if !isRunning {
@@ -244,7 +244,7 @@ func main() {
 		reportError(err)
 	}
 
-	if err := waitTillMBKill(); err != nil {
+	if err := waitTillMBStops(); err != nil {
 		reportError(err)
 	}
 	updatedCnt, err := extractUpdatedFiles(downloadPath, MBPath)

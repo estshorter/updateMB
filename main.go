@@ -106,14 +106,11 @@ func extractUpdatedFiles(src, dest string) (int, error) {
 			continue
 		}
 
-		extracted, err := extractUpdatedFile(f, fpath)
-		if err != nil {
+		if extracted, err := extractUpdatedFile(f, fpath); err != nil {
 			return cntExtract, err
-		}
-		if extracted {
+		} else if extracted {
 			cntExtract++
 		}
-
 	}
 	return cntExtract, nil
 }
@@ -232,8 +229,7 @@ func main() {
 	needUpdate, mbSiteTimeStampStr, err := needMBUpdate(mbPatchURL, targetFileName, lastAccessFileName)
 	if err != nil {
 		reportError(err)
-	}
-	if !needUpdate {
+	} else if !needUpdate {
 		fmt.Println("No need to download.")
 		timeout.Exec(3)
 		return
@@ -247,11 +243,9 @@ func main() {
 	if err := waitTillMBStops(); err != nil {
 		reportError(err)
 	}
-	updatedCnt, err := extractUpdatedFiles(downloadPath, MBPath)
-	if err != nil {
+	if updatedCnt, err := extractUpdatedFiles(downloadPath, MBPath); err != nil {
 		reportError(err)
-	}
-	if updatedCnt == 0 {
+	} else if updatedCnt == 0 {
 		fmt.Println("All files are up-to-date.")
 	} else {
 		fmt.Printf("Update/added %v file(s).\n", updatedCnt)

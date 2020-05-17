@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -19,46 +20,84 @@ import (
 	"github.com/estshorter/timeout"
 )
 
-func getLastAccessDate(path string) string {
-	content, err := ioutil.ReadFile(path)
-	if err != nil {
-		return "2020-01-01 00:00"
-	}
-	return string(content)
+type mbTime struct {
+	Stamp time.Time
 }
 
-func needMBUpdate(mbPatchURL, targetFileName, lastAccessFileName string) (bool, string, error) {
+// Unmarshal時の動作を定義します
+func (mt *mbTime) UnmarshalJSON(data []byte) error {
+	tmp := struct{ Stamp string }{}
+	if err := json.Unmarshal(data, &tmp); err != nil {
+		return err
+	}
+	t, err := time.Parse("2006-01-02 15:04", tmp.Stamp)
+	if err != nil {
+		return err
+	}
+	mt.Stamp = t
+	return nil
+}
+
+// Marshal時の動作を定義します
+func (mt *mbTime) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		Stamp string `json:"stamp"`
+	}{Stamp: mt.Stamp.Format("2006-01-02 15:04")})
+}
+
+func readLastAccessDate(path string) *time.Time {
+	content, err := ioutil.ReadFile(path)
+	if err != nil {
+		defaultTime := time.Date(2020, time.January, 1, 0, 0, 0, 0, time.Local)
+		return &defaultTime
+	}
+	var mbTime mbTime
+	if err := mbTime.UnmarshalJSON(content); err != nil {
+		defaultTime := time.Date(2020, time.January, 1, 0, 0, 0, 0, time.Local)
+		return &defaultTime
+	}
+	return &mbTime.Stamp
+}
+
+func writeLastAccessDate(filename string, t *time.Time) error {
+	mt := mbTime{Stamp: *t}
+	jsonText, err := mt.MarshalJSON()
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(filename, jsonText, os.ModePerm)
+	return err
+}
+
+func needMBUpdate(mbPatchURL, targetFileName, lastAccessFileName string) (bool, *time.Time, error) {
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", mbPatchURL, nil)
 	if err != nil {
-		return false, "", err
+		return false, nil, err
 	}
 	req.Header.Set("User-Agent", "Mozilla/5.0")
 	resp, err := client.Do(req)
 	if err != nil {
-		return false, "", err
+		return false, nil, err
 	}
 	defer resp.Body.Close()
 	// Load the HTML document
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	doc, err := goquery.NewDocumentFromResponse(resp)
 	if err != nil {
-		return false, "", err
+		return false, nil, err
 	}
 
 	mbSiteTimeStampRaw := doc.Find("a[href=\"" + targetFileName + "\"]").Parent().Next().Text()
 	mbSiteTimeStampStr := strings.TrimSpace(mbSiteTimeStampRaw)
 	mbSiteTimeStamp, err := time.Parse("2006-01-02 15:04", mbSiteTimeStampStr)
 	if err != nil {
-		return false, "", err
+		return false, nil, err
 	}
-	lastAccessDate, err := time.Parse("2006-01-02 15:04", getLastAccessDate(lastAccessFileName))
-	if err != nil {
-		return false, "", err
-	}
+	lastAccessDate := *readLastAccessDate(lastAccessFileName)
 	if mbSiteTimeStamp.After(lastAccessDate) {
-		return true, mbSiteTimeStampStr, nil
+		return true, &mbSiteTimeStamp, nil
 	}
-	return false, mbSiteTimeStampStr, nil
+	return false, &mbSiteTimeStamp, nil
 }
 
 func downloadFile(filepath, url string) error {
@@ -69,16 +108,12 @@ func downloadFile(filepath, url string) error {
 	}
 	defer resp.Body.Close()
 
-	// Create the file
-	out, err := os.Create(filepath)
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
-	defer out.Close()
-
-	// Write the body to file
-	_, err = io.Copy(out, resp.Body)
-	return err
+	ioutil.WriteFile(filepath, body, 0644)
+	return nil
 }
 
 func extractUpdatedFiles(src, dest string) (int, error) {
@@ -217,7 +252,7 @@ func main() {
 	const cachePath = "C:/tmp"
 	const targetFileName = "MusicBee33_Patched.zip"
 
-	lastAccessFileName := filepath.Join(cachePath, "mb_last_download_datetime.txt")
+	lastAccessFileName := filepath.Join(cachePath, "updateMB.json")
 	downloadPath := filepath.Join(cachePath, targetFileName)
 
 	if !exists(filepath.Clean(cachePath)) {
@@ -226,7 +261,7 @@ func main() {
 		}
 	}
 
-	needUpdate, mbSiteTimeStampStr, err := needMBUpdate(mbPatchURL, targetFileName, lastAccessFileName)
+	needUpdate, mbSiteTimeStamp, err := needMBUpdate(mbPatchURL, targetFileName, lastAccessFileName)
 	if err != nil {
 		reportError(err)
 	} else if !needUpdate {
@@ -251,7 +286,9 @@ func main() {
 		fmt.Printf("Update/added %v file(s).\n", updatedCnt)
 	}
 
-	ioutil.WriteFile(lastAccessFileName, []byte(mbSiteTimeStampStr), 0644)
+	if err := writeLastAccessDate(lastAccessFileName, mbSiteTimeStamp); err != nil {
+		reportError(err)
+	}
 	timeout.Exec(7)
 	// restart MB
 	// https://stackoverflow.com/questions/25633077/how-do-you-add-spaces-to-exec-command-in-golang

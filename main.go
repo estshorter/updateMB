@@ -24,36 +24,15 @@ type mbTime struct {
 	Stamp time.Time
 }
 
-// Unmarshal時の動作を定義します
-func (mt *mbTime) UnmarshalJSON(data []byte) error {
-	tmp := struct{ Stamp string }{}
-	if err := json.Unmarshal(data, &tmp); err != nil {
-		return err
-	}
-	t, err := time.Parse("2006-01-02 15:04", tmp.Stamp)
-	if err != nil {
-		return err
-	}
-	mt.Stamp = t
-	return nil
-}
-
-// Marshal時の動作を定義します
-func (mt *mbTime) MarshalJSON() ([]byte, error) {
-	return json.Marshal(&struct {
-		Stamp string `json:"stamp"`
-	}{Stamp: mt.Stamp.Format("2006-01-02 15:04")})
-}
-
 func readLastAccessDate(path string) *time.Time {
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
-		defaultTime := time.Date(2020, time.January, 1, 0, 0, 0, 0, time.Local)
+		defaultTime := time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC)
 		return &defaultTime
 	}
 	var mbTime mbTime
-	if err := mbTime.UnmarshalJSON(content); err != nil {
-		defaultTime := time.Date(2020, time.January, 1, 0, 0, 0, 0, time.Local)
+	if err := json.Unmarshal(content, &mbTime); err != nil {
+		defaultTime := time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC)
 		return &defaultTime
 	}
 	return &mbTime.Stamp
@@ -61,7 +40,7 @@ func readLastAccessDate(path string) *time.Time {
 
 func writeLastAccessDate(filename string, t *time.Time) error {
 	mt := mbTime{Stamp: *t}
-	jsonText, err := mt.MarshalJSON()
+	jsonText, err := json.Marshal(mt)
 	if err != nil {
 		return err
 	}

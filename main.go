@@ -79,30 +79,30 @@ func needMBUpdate(mbPatchURL, targetFileName, lastAccessFileName string) (bool, 
 	return false, &mbSiteTimeStamp, nil
 }
 
-func downloadFile(filepath, url string) error {
+func downloadFile(filepath, url string) (*bytes.Reader, int, error) {
 	// Get the data
 	resp, err := http.Get(url)
 	if err != nil {
-		return err
+		return nil, 0, err
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return nil, 0, err
 	}
-	ioutil.WriteFile(filepath, body, 0644)
-	return nil
+	// ioutil.WriteFile(filepath, body, 0644)
+	return bytes.NewReader(body), len(body), nil
 }
 
-func extractUpdatedFiles(src, dest string) (int, error) {
+func extractUpdatedFiles(zipReader io.ReaderAt, size int, dest string) (int, error) {
 	cntExtract := 0
 
-	r, err := zip.OpenReader(src)
+	r, err := zip.NewReader(zipReader, int64(size))
 	if err != nil {
 		return cntExtract, err
 	}
-	defer r.Close()
+	// defer r.Close()
 
 	for _, f := range r.File {
 		// Store filename/path for returning and using later on
@@ -250,7 +250,8 @@ func main() {
 	}
 
 	fmt.Println("Downloading the zip file.")
-	if err := downloadFile(downloadPath, mbPatchURL+targetFileName); err != nil {
+	zipReader, zipSize, err := downloadFile(downloadPath, mbPatchURL+targetFileName)
+	if err != nil {
 		reportError(err)
 	}
 
@@ -258,7 +259,7 @@ func main() {
 	if err != nil {
 		reportError(err)
 	}
-	if updatedCnt, err := extractUpdatedFiles(downloadPath, MBPath); err != nil {
+	if updatedCnt, err := extractUpdatedFiles(zipReader, zipSize, MBPath); err != nil {
 		reportError(err)
 	} else if updatedCnt == 0 {
 		fmt.Println("All files are up-to-date.")

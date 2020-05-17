@@ -226,20 +226,20 @@ func isWinProcRunning(names ...string) (bool, error) {
 	return false, nil
 }
 
-func waitTillMBStops() error {
+func waitTillMBStops() (bool, error) {
 	if isRunning, err := isWinProcRunning("MusicBee.exe"); err != nil {
-		return err
+		return false, err
 	} else if !isRunning {
-		return nil
+		return true, nil
 	}
 	exec.Command("taskkill", "/im", "MusicBee.exe").Run()
 	for {
 		select {
 		case <-time.After(time.Second):
 			if isRunning, err := isWinProcRunning("MusicBee.exe"); err != nil {
-				return err
+				return false, err
 			} else if !isRunning {
-				return nil
+				return false, nil
 			}
 		}
 	}
@@ -275,7 +275,8 @@ func main() {
 		reportError(err)
 	}
 
-	if err := waitTillMBStops(); err != nil {
+	MBNotStarted, err := waitTillMBStops()
+	if err != nil {
 		reportError(err)
 	}
 	if updatedCnt, err := extractUpdatedFiles(downloadPath, MBPath); err != nil {
@@ -292,6 +293,9 @@ func main() {
 	timeout.Exec(7)
 	// restart MB
 	// https://stackoverflow.com/questions/25633077/how-do-you-add-spaces-to-exec-command-in-golang
+	if MBNotStarted {
+		return
+	}
 	cmd := exec.Command(filepath.Join(MBPath, "MusicBee.exe"))
 	if err := cmd.Start(); err != nil {
 		reportError(err)

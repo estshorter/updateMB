@@ -48,13 +48,7 @@ func writeUpdatedAt(filename string, t *time.Time) error {
 }
 
 func scrapeMBUpdatedAt(mbPatchURL, targetFileName string) (*time.Time, error) {
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", mbPatchURL, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("User-Agent", "Mozilla/5.0")
-	resp, err := client.Do(req)
+	resp, err := http.Get(mbPatchURL)
 	if err != nil {
 		return nil, err
 	}

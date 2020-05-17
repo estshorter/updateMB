@@ -21,10 +21,10 @@ import (
 )
 
 type mbTime struct {
-	Stamp time.Time
+	UpdatedAt time.Time
 }
 
-func readLastAccessDate(path string) *time.Time {
+func readUpdatedAt(path string) *time.Time {
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
 		defaultTime := time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC)
@@ -35,51 +35,57 @@ func readLastAccessDate(path string) *time.Time {
 		defaultTime := time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC)
 		return &defaultTime
 	}
-	return &mbTime.Stamp
+	return &mbTime.UpdatedAt
 }
 
-func writeLastAccessDate(filename string, t *time.Time) error {
-	mt := mbTime{Stamp: *t}
+func writeUpdatedAt(filename string, t *time.Time) error {
+	mt := mbTime{UpdatedAt: *t}
 	jsonText, err := json.Marshal(mt)
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(filename, jsonText, os.ModePerm)
-	return err
+	return ioutil.WriteFile(filename, jsonText, os.ModePerm)
 }
 
-func needMBUpdate(mbPatchURL, targetFileName, lastAccessFileName string) (bool, *time.Time, error) {
+func scrapeMBUpdatedAt(mbPatchURL, targetFileName string) (*time.Time, error) {
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", mbPatchURL, nil)
 	if err != nil {
-		return false, nil, err
+		return nil, err
 	}
 	req.Header.Set("User-Agent", "Mozilla/5.0")
 	resp, err := client.Do(req)
 	if err != nil {
-		return false, nil, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 	// Load the HTML document
 	doc, err := goquery.NewDocumentFromResponse(resp)
 	if err != nil {
-		return false, nil, err
+		return nil, err
 	}
 
 	mbSiteTimeStampRaw := doc.Find("a[href=\"" + targetFileName + "\"]").Parent().Next().Text()
-	mbSiteTimeStampStr := strings.TrimSpace(mbSiteTimeStampRaw)
-	mbSiteTimeStamp, err := time.Parse("2006-01-02 15:04", mbSiteTimeStampStr)
+	mbSiteTimeStamp, err := time.Parse("2006-01-02 15:04", strings.TrimSpace(mbSiteTimeStampRaw))
+	if err != nil {
+		return nil, err
+	}
+	return &mbSiteTimeStamp, nil
+}
+
+func needMBUpdate(mbPatchURL, targetFileName, updatedAtFileName string) (bool, *time.Time, error) {
+	updatedAtSite, err := scrapeMBUpdatedAt(mbPatchURL, targetFileName)
 	if err != nil {
 		return false, nil, err
 	}
-	lastAccessDate := *readLastAccessDate(lastAccessFileName)
-	if mbSiteTimeStamp.After(lastAccessDate) {
-		return true, &mbSiteTimeStamp, nil
+	updatedAtFile := *readUpdatedAt(updatedAtFileName)
+	if updatedAtSite.After(updatedAtFile) {
+		return true, updatedAtSite, nil
 	}
-	return false, &mbSiteTimeStamp, nil
+	return false, updatedAtSite, nil
 }
 
-func downloadFile(filepath, url string) (*bytes.Reader, int, error) {
+func downloadFileToMemory(filepath, url string) (*bytes.Reader, int, error) {
 	// Get the data
 	resp, err := http.Get(url)
 	if err != nil {
@@ -228,19 +234,19 @@ func waitTillMBStops() (bool, error) {
 func main() {
 	const mbPatchURL = "https://getmusicbee.com/patches/"
 	const MBPath = "C:/Program Files (x86)/MusicBee/"
-	const cachePath = "C:/tmp"
+	const cachePath = "./"
 	const targetFileName = "MusicBee33_Patched.zip"
 
-	lastAccessFileName := filepath.Join(cachePath, "updateMB.json")
+	updatedAtFileName := filepath.Join(cachePath, "updateMB.json")
 	downloadPath := filepath.Join(cachePath, targetFileName)
 
 	if !exists(filepath.Clean(cachePath)) {
-		if err := os.MkdirAll(filepath.Dir(lastAccessFileName), os.ModePerm); err != nil {
+		if err := os.MkdirAll(filepath.Dir(updatedAtFileName), os.ModePerm); err != nil {
 			reportError(err)
 		}
 	}
 
-	needUpdate, mbSiteTimeStamp, err := needMBUpdate(mbPatchURL, targetFileName, lastAccessFileName)
+	needUpdate, mbSiteTimeStamp, err := needMBUpdate(mbPatchURL, targetFileName, updatedAtFileName)
 	if err != nil {
 		reportError(err)
 	} else if !needUpdate {
@@ -250,7 +256,7 @@ func main() {
 	}
 
 	fmt.Println("Downloading the zip file.")
-	zipReader, zipSize, err := downloadFile(downloadPath, mbPatchURL+targetFileName)
+	bytesReader, bytesSize, err := downloadFileToMemory(downloadPath, mbPatchURL+targetFileName)
 	if err != nil {
 		reportError(err)
 	}
@@ -259,7 +265,7 @@ func main() {
 	if err != nil {
 		reportError(err)
 	}
-	if updatedCnt, err := extractUpdatedFiles(zipReader, zipSize, MBPath); err != nil {
+	if updatedCnt, err := extractUpdatedFiles(bytesReader, bytesSize, MBPath); err != nil {
 		reportError(err)
 	} else if updatedCnt == 0 {
 		fmt.Println("All files are up-to-date.")
@@ -267,7 +273,7 @@ func main() {
 		fmt.Printf("Update/added %v file(s).\n", updatedCnt)
 	}
 
-	if err := writeLastAccessDate(lastAccessFileName, mbSiteTimeStamp); err != nil {
+	if err := writeUpdatedAt(updatedAtFileName, mbSiteTimeStamp); err != nil {
 		reportError(err)
 	}
 	timeout.Exec(7)

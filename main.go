@@ -20,7 +20,8 @@ import (
 	"github.com/estshorter/timeout"
 )
 
-type mbTime struct {
+// Info includes MB update time
+type Info struct {
 	UpdatedAt time.Time
 }
 
@@ -30,16 +31,16 @@ func readUpdatedAt(path string) *time.Time {
 		defaultTime := time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC)
 		return &defaultTime
 	}
-	var mbTime mbTime
-	if err := json.Unmarshal(content, &mbTime); err != nil {
+	var info Info
+	if err := json.Unmarshal(content, &info); err != nil {
 		defaultTime := time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC)
 		return &defaultTime
 	}
-	return &mbTime.UpdatedAt
+	return &info.UpdatedAt
 }
 
 func writeUpdatedAt(filename string, t *time.Time) error {
-	mt := mbTime{UpdatedAt: *t}
+	mt := Info{UpdatedAt: *t}
 	jsonText, err := json.Marshal(mt)
 	if err != nil {
 		return err

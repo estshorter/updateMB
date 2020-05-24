@@ -80,7 +80,7 @@ func needMBUpdate(mbPatchURL, targetFileName, updatedAtFileName string) (bool, *
 	return false, updatedAtSite, nil
 }
 
-func downloadFileToMemory(filepath, url string) (*bytes.Reader, int, error) {
+func downloadFileToMemory(url string) (*bytes.Reader, int, error) {
 	// Get the data
 	resp, err := http.Get(url)
 	if err != nil {
@@ -92,7 +92,6 @@ func downloadFileToMemory(filepath, url string) (*bytes.Reader, int, error) {
 	if err != nil {
 		return nil, 0, err
 	}
-	// ioutil.WriteFile(filepath, body, 0644)
 	return bytes.NewReader(body), len(body), nil
 }
 
@@ -233,7 +232,6 @@ func main() {
 	const targetFileName = "MusicBee33_Patched.zip"
 
 	updatedAtFileName := filepath.Join(cachePath, "updateMB.json")
-	downloadPath := filepath.Join(cachePath, targetFileName)
 
 	if !exists(filepath.Clean(cachePath)) {
 		if err := os.MkdirAll(filepath.Dir(updatedAtFileName), os.ModePerm); err != nil {
@@ -251,7 +249,7 @@ func main() {
 	}
 
 	fmt.Println("Downloading the zip file.")
-	bytesReader, bytesSize, err := downloadFileToMemory(downloadPath, mbPatchURL+targetFileName)
+	bytesReader, bytesSize, err := downloadFileToMemory(mbPatchURL + targetFileName)
 	if err != nil {
 		reportError(err)
 	}

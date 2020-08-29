@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -20,28 +21,28 @@ import (
 	"github.com/estshorter/timeout"
 )
 
-// Info includes MB update time
-type Info struct {
-	UpdatedAt time.Time
+// Configs includes MB update time
+type Configs struct {
+	MBPatchURL     string    `json:"mbPatchURL"`
+	MBPath         string    `json:"mbPath"`
+	TargetFileName string    `json:"targetFileName"`
+	UpdatedAt      time.Time `json:"updatedAt"`
 }
 
-func readUpdatedAt(path string) *time.Time {
+func readConfigs(path string) (*Configs, error) {
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
-		defaultTime := time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC)
-		return &defaultTime
+		return nil, err
 	}
-	var info Info
-	if err := json.Unmarshal(content, &info); err != nil {
-		defaultTime := time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC)
-		return &defaultTime
+	var configs Configs
+	if err := json.Unmarshal(content, &configs); err != nil {
+		return nil, err
 	}
-	return &info.UpdatedAt
+	return &configs, nil
 }
 
-func writeUpdatedAt(filename string, t *time.Time) error {
-	mt := Info{UpdatedAt: *t}
-	jsonText, err := json.Marshal(mt)
+func writeUpdatedAt(filename string, configs *Configs) error {
+	jsonText, err := json.MarshalIndent(configs, "", "\t")
 	if err != nil {
 		return err
 	}
@@ -68,12 +69,12 @@ func scrapeMBUpdatedAt(mbPatchURL, targetFileName string) (*time.Time, error) {
 	return &mbSiteTimeStamp, nil
 }
 
-func needMBUpdate(mbPatchURL, targetFileName, updatedAtFileName string) (bool, *time.Time, error) {
-	updatedAtSite, err := scrapeMBUpdatedAt(mbPatchURL, targetFileName)
+func needMBUpdate(configs *Configs) (bool, *time.Time, error) {
+	updatedAtSite, err := scrapeMBUpdatedAt(configs.MBPatchURL, configs.TargetFileName)
 	if err != nil {
 		return false, nil, err
 	}
-	updatedAtFile := *readUpdatedAt(updatedAtFileName)
+	updatedAtFile := configs.UpdatedAt
 	if updatedAtSite.After(updatedAtFile) {
 		return true, updatedAtSite, nil
 	}
@@ -226,20 +227,19 @@ func waitTillMBStops() (bool, error) {
 }
 
 func main() {
-	const mbPatchURL = "https://getmusicbee.com/patches/"
-	const MBPath = "C:/Program Files (x86)/MusicBee/"
-	const cachePath = "./"
-	const targetFileName = "MusicBee33_Patched.zip"
-
-	updatedAtFileName := filepath.Join(cachePath, "updateMB.json")
-
-	if !exists(filepath.Clean(cachePath)) {
-		if err := os.MkdirAll(filepath.Dir(updatedAtFileName), os.ModePerm); err != nil {
-			reportError(err)
-		}
+	var configFilePath string
+	flag.Parse()
+	if len(flag.Args()) == 1 {
+		configFilePath = flag.Args()[0]
+	} else {
+		configFilePath = "configs.json"
+	}
+	configs, err := readConfigs(configFilePath)
+	if err != nil {
+		reportError(err)
 	}
 
-	needUpdate, mbSiteTimeStamp, err := needMBUpdate(mbPatchURL, targetFileName, updatedAtFileName)
+	needUpdate, mbSiteTimeStamp, err := needMBUpdate(configs)
 	if err != nil {
 		reportError(err)
 	} else if !needUpdate {
@@ -249,7 +249,8 @@ func main() {
 	}
 
 	fmt.Println("Downloading the zip file.")
-	bytesReader, bytesSize, err := downloadFileToMemory(mbPatchURL + targetFileName)
+	downloadPath := configs.MBPatchURL + configs.TargetFileName
+	bytesReader, bytesSize, err := downloadFileToMemory(downloadPath)
 	if err != nil {
 		reportError(err)
 	}
@@ -258,7 +259,7 @@ func main() {
 	if err != nil {
 		reportError(err)
 	}
-	if updatedCnt, err := extractUpdatedFiles(bytesReader, bytesSize, MBPath); err != nil {
+	if updatedCnt, err := extractUpdatedFiles(bytesReader, bytesSize, configs.MBPath); err != nil {
 		reportError(err)
 	} else if updatedCnt == 0 {
 		fmt.Println("All files are up-to-date.")
@@ -266,7 +267,8 @@ func main() {
 		fmt.Printf("Update/added %v file(s).\n", updatedCnt)
 	}
 
-	if err := writeUpdatedAt(updatedAtFileName, mbSiteTimeStamp); err != nil {
+	configs.UpdatedAt = *mbSiteTimeStamp
+	if err := writeUpdatedAt(configFilePath, configs); err != nil {
 		reportError(err)
 	}
 	timeout.Exec(7)
@@ -275,7 +277,7 @@ func main() {
 	if MBNotStarted {
 		return
 	}
-	cmd := exec.Command(filepath.Join(MBPath, "MusicBee.exe"))
+	cmd := exec.Command(filepath.Join(configs.MBPath, "MusicBee.exe"))
 	if err := cmd.Start(); err != nil {
 		reportError(err)
 	}

@@ -1,6 +1,6 @@
 module github.com/estshorter/updateMB
 
-go 1.14
+go 1.15
 
 require (
 	github.com/PuerkitoBio/goquery v1.6.0

@@ -56,7 +56,7 @@ func scrapeMBUpdatedAt(mbPatchURL, targetFileName string) (*time.Time, error) {
 	}
 	defer resp.Body.Close()
 	// Load the HTML document
-	doc, err := goquery.NewDocumentFromResponse(resp)
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
 		return nil, err
 	}

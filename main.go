@@ -8,7 +8,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -30,7 +29,7 @@ type Configs struct {
 }
 
 func readConfigs(path string) (*Configs, error) {
-	content, err := ioutil.ReadFile(path)
+	content, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +45,7 @@ func writeUpdatedAt(filename string, configs *Configs) error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(filename, jsonText, os.ModePerm)
+	return os.WriteFile(filename, jsonText, os.ModePerm)
 }
 
 func scrapeMBUpdatedAt(mbPatchURL, targetFileName string) (*time.Time, error) {
@@ -89,7 +88,7 @@ func downloadFileToMemory(url string) (*bytes.Reader, int, error) {
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -185,7 +184,7 @@ func reportError(err error) {
 	panic("Error occured")
 }
 
-//https://blog.y-yuki.net/entry/2018/08/03/000000
+// https://blog.y-yuki.net/entry/2018/08/03/000000
 func isWinProcRunning(names ...string) (bool, error) {
 	if len(names) == 0 {
 		return false, nil

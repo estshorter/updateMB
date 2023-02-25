@@ -4,8 +4,8 @@ github.com/andybalholm/cascadia v1.3.1 h1:nhxRkql1kdYCc8Snf7D5/D3spOX+dBgjA6u8x0
 github.com/andybalholm/cascadia v1.3.1/go.mod h1:R4bJ1UQfqADjvDa4P6HZHLh/3OxWWEqc0Sk8XGwHqvA=
 github.com/eiannone/keyboard v0.0.0-20220611211555-0d226195f203 h1:XBBHcIb256gUJtLmY22n99HaZTz+r2Z51xUPi01m3wg=
 github.com/eiannone/keyboard v0.0.0-20220611211555-0d226195f203/go.mod h1:E1jcSv8FaEny+OP/5k9UxZVw9YFWGj7eI4KR/iOBqCg=
-github.com/estshorter/timeout v0.0.0-20210822000549-20fa79b19e35 h1:Q4e4trrs0A+Mco8FkIq/zXjbgP6VGj89ij+nKi/JTO4=
-github.com/estshorter/timeout v0.0.0-20210822000549-20fa79b19e35/go.mod h1:WtJ8dGWIzFOC5krLllMhPgGyGV/X3LsP0zo96rzWhmE=
+github.com/estshorter/timeout v0.0.0-20230225095720-f71e629b2efd h1:HUBMoTa7/Abi0QFVGNc9KgRWaceKvzXybwROEqNfafM=
+github.com/estshorter/timeout v0.0.0-20230225095720-f71e629b2efd/go.mod h1:NnPe92w/jSEkAAZJdUwhxQJ9VI0cudESBHnqYo2AdRY=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20210921155107-089bfa567519/go.mod h1:GvvjBRRGRdwPK5ydBHafDWAxML/pGHZbMvKqRZ5+Abc=

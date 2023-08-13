@@ -213,16 +213,13 @@ func waitTillMBStops() (bool, error) {
 	}
 	exec.Command("taskkill", "/im", "MusicBee.exe").Run()
 	for {
-		select {
-		case <-time.After(time.Second):
-			if isRunning, err := isWinProcRunning("MusicBee.exe"); err != nil {
-				return false, err
-			} else if !isRunning {
-				return false, nil
-			}
+		<-time.After(time.Second)
+		if isRunning, err := isWinProcRunning("MusicBee.exe"); err != nil {
+			return false, err
+		} else if !isRunning {
+			return false, nil
 		}
 	}
-
 }
 
 func main() {

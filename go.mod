@@ -10,6 +10,6 @@ require (
 require (
 	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/eiannone/keyboard v0.0.0-20220611211555-0d226195f203 // indirect
-	golang.org/x/net v0.14.0 // indirect
-	golang.org/x/sys v0.11.0 // indirect
+	golang.org/x/net v0.17.0 // indirect
+	golang.org/x/sys v0.13.0 // indirect
 )
